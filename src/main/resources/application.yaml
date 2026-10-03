@@ -1,0 +1,3 @@
+spring:
+  application:
+    name: pariking_lot_management
