@@ -1,5 +1,6 @@
 package com.rapidstack.pariking_lot_management.application.usecase.entry;
 
+import com.rapidstack.pariking_lot_management.application.port.ParkingTicketRepository;
 import com.rapidstack.pariking_lot_management.domain.enums.SpotStatus;
 import com.rapidstack.pariking_lot_management.domain.enums.SpotType;
 import com.rapidstack.pariking_lot_management.domain.enums.TicketStatus;
@@ -32,8 +33,10 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -45,6 +48,9 @@ class ParkingEntryServiceTest {
     @Mock
     private SpotAllocationStrategy allocationStrategy;
 
+    @Mock
+    private ParkingTicketRepository ticketRepository;
+
     @Captor
     private ArgumentCaptor<List<ParkingSpot>> candidatesCaptor;
 
@@ -54,7 +60,8 @@ class ParkingEntryServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ParkingEntryService(allocationStrategy, Clock.fixed(ENTRY_INSTANT, ZoneOffset.UTC));
+        service = new ParkingEntryService(allocationStrategy, Clock.fixed(ENTRY_INSTANT, ZoneOffset.UTC),
+                ticketRepository);
     }
 
     @Test
@@ -73,6 +80,7 @@ class ParkingEntryServiceTest {
         assertEquals(ENTRY_INSTANT, ticket.getEntryTime());
         assertNull(ticket.getExitTime());
         assertEquals(SpotStatus.OCCUPIED, spot.getStatus());
+        verify(ticketRepository).save(same(ticket));
     }
 
     @Test
@@ -89,6 +97,7 @@ class ParkingEntryServiceTest {
 
         verify(allocationStrategy).allocate(candidatesCaptor.capture(), same(car));
         assertEquals(List.of(groundA, groundB, firstFloorSpot), candidatesCaptor.getValue());
+        verify(ticketRepository, never()).save(any(ParkingTicket.class));
     }
 
     @Test
@@ -103,6 +112,7 @@ class ParkingEntryServiceTest {
         assertTrue(exception.getMessage().contains("AB12CD3456"));
         assertTrue(exception.getMessage().contains("Rapid Lot"));
         assertEquals(SpotStatus.AVAILABLE, onlyBikeSpot.getStatus()); // nothing mutated on failure
+        verify(ticketRepository, never()).save(any(ParkingTicket.class));
     }
 
     @Test
@@ -112,6 +122,7 @@ class ParkingEntryServiceTest {
         when(allocationStrategy.allocate(anyList(), same(car))).thenReturn(Optional.of(occupiedSpot));
 
         assertThrows(IllegalStateException.class, () -> service.admit(car, lot));
+        verify(ticketRepository, never()).save(any(ParkingTicket.class));
     }
 
     @Test
@@ -142,8 +153,9 @@ class ParkingEntryServiceTest {
     void rejectsNullConstructorDependencies() {
         Clock clock = Clock.fixed(ENTRY_INSTANT, ZoneOffset.UTC);
 
-        assertThrows(NullPointerException.class, () -> new ParkingEntryService(null, clock));
-        assertThrows(NullPointerException.class, () -> new ParkingEntryService(allocationStrategy, null));
+        assertThrows(NullPointerException.class, () -> new ParkingEntryService(null, clock, ticketRepository));
+        assertThrows(NullPointerException.class, () -> new ParkingEntryService(allocationStrategy, null, ticketRepository));
+        assertThrows(NullPointerException.class, () -> new ParkingEntryService(allocationStrategy, clock, null));
     }
 
     private ParkingLot singleFloorLot(ParkingSpot... spots) {

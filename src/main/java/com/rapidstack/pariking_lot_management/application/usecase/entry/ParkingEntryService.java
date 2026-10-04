@@ -1,5 +1,6 @@
 package com.rapidstack.pariking_lot_management.application.usecase.entry;
 
+import com.rapidstack.pariking_lot_management.application.port.ParkingTicketRepository;
 import com.rapidstack.pariking_lot_management.domain.exception.NoAvailableSpotException;
 import com.rapidstack.pariking_lot_management.domain.model.ParkingFloor;
 import com.rapidstack.pariking_lot_management.domain.model.ParkingLot;
@@ -18,7 +19,8 @@ import java.util.UUID;
  * Orchestrates the vehicle entry workflow: gathers the lot's spots as
  * allocation candidates, delegates spot selection to the injected
  * {@link SpotAllocationStrategy}, marks the chosen spot occupied (a
- * domain-guarded transition), and issues an ACTIVE ticket for the stay.
+ * domain-guarded transition), issues an ACTIVE ticket for the stay, and
+ * records it through the ticket repository port.
  *
  * <p>This service owns no business rules — spot compatibility and selection
  * live in the strategy, occupancy transitions and ticket invariants in the
@@ -30,15 +32,19 @@ public class ParkingEntryService {
 
     private final SpotAllocationStrategy allocationStrategy;
     private final Clock clock;
+    private final ParkingTicketRepository ticketRepository;
 
-    public ParkingEntryService(SpotAllocationStrategy allocationStrategy, Clock clock) {
+    public ParkingEntryService(SpotAllocationStrategy allocationStrategy,
+                               Clock clock,
+                               ParkingTicketRepository ticketRepository) {
         this.allocationStrategy = Objects.requireNonNull(allocationStrategy, "allocationStrategy must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
+        this.ticketRepository = Objects.requireNonNull(ticketRepository, "ticketRepository must not be null");
     }
 
     /**
-     * Admits a vehicle to the lot: allocates a spot, occupies it, and opens a
-     * ticket for the stay.
+     * Admits a vehicle to the lot: allocates a spot, occupies it, opens a
+     * ticket for the stay, and persists it.
      *
      * @throws NoAvailableSpotException if no available spot fits the vehicle
      */
@@ -57,6 +63,8 @@ public class ParkingEntryService {
                                 + " (" + vehicle.getVehicleType() + ") at lot '" + parkingLot.getName() + "'"));
 
         spot.markOccupied();
-        return new ParkingTicket(UUID.randomUUID().toString(), vehicle, spot, clock.instant());
+        ParkingTicket ticket = new ParkingTicket(UUID.randomUUID().toString(), vehicle, spot, clock.instant());
+        ticketRepository.save(ticket);
+        return ticket;
     }
 }

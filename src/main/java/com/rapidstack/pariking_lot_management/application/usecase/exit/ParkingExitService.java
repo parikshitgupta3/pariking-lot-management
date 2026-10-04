@@ -49,13 +49,7 @@ public class ParkingExitService {
      *                                         checked out
      */
     public ParkingTicket checkout(String ticketId) {
-        Objects.requireNonNull(ticketId, "ticketId must not be null");
-        if (ticketId.isBlank()) {
-            throw new IllegalArgumentException("ticketId must not be blank");
-        }
-
-        ParkingTicket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new TicketNotFoundException("No parking ticket found for id '" + ticketId + "'"));
+        ParkingTicket ticket = getTicket(ticketId);
         if (ticket.getStatus() != TicketStatus.ACTIVE) {
             throw new TicketAlreadyCompletedException(
                     "Ticket " + ticketId + " is already completed (exit time: " + ticket.getExitTime() + ")");
@@ -69,5 +63,19 @@ public class ParkingExitService {
         ticket.getSpot().release();
         ticketRepository.save(ticket);
         return ticket;
+    }
+
+    /**
+     * Looks up a ticket by id, active or completed.
+     *
+     * @throws TicketNotFoundException if no ticket exists for the id
+     */
+    public ParkingTicket getTicket(String ticketId) {
+        Objects.requireNonNull(ticketId, "ticketId must not be null");
+        if (ticketId.isBlank()) {
+            throw new IllegalArgumentException("ticketId must not be blank");
+        }
+        return ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new TicketNotFoundException("No parking ticket found for id '" + ticketId + "'"));
     }
 }
