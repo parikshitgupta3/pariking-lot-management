@@ -1,10 +1,17 @@
-package com.rapidstack.pariking_lot_management.domain;
+package com.rapidstack.pariking_lot_management.domain.model;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+/**
+ * The parking lot aggregate root: a named collection of floors.
+ *
+ * <p>Immutable in structure: the floor list is fixed at construction and
+ * exposed as an unmodifiable view. Floor numbers must be unique within the
+ * lot.
+ */
 public final class ParkingLot {
 
     private final String id;
@@ -45,6 +52,10 @@ public final class ParkingLot {
         return floors;
     }
 
+    /**
+     * Identity is the id; two lots with the same id are the same lot
+     * regardless of their name or floors.
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) {

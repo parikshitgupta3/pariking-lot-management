@@ -1,10 +1,17 @@
-package com.rapidstack.pariking_lot_management.domain;
+package com.rapidstack.pariking_lot_management.domain.model;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+/**
+ * One floor of a parking lot, holding the floor's parking spots.
+ *
+ * <p>Immutable in structure: the spot list is fixed at construction and
+ * exposed as an unmodifiable view. Spot numbers must be unique within the
+ * floor, since a spot is addressed by its number.
+ */
 public final class ParkingFloor {
 
     private final String id;

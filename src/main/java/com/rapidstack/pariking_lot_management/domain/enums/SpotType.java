@@ -1,4 +1,4 @@
-package com.rapidstack.pariking_lot_management.domain;
+package com.rapidstack.pariking_lot_management.domain.enums;
 
 /**
  * The physical size class of a parking spot.

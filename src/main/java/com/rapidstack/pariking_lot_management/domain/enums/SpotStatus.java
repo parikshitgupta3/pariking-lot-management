@@ -1,10 +1,9 @@
-package com.rapidstack.pariking_lot_management.domain;
+package com.rapidstack.pariking_lot_management.domain.enums;
 
 /**
  * The occupancy state of a parking spot.
  */
 public enum SpotStatus {
-
     AVAILABLE,
     OCCUPIED,
     OUT_OF_SERVICE

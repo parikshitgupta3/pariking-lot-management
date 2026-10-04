@@ -1,4 +1,6 @@
-package com.rapidstack.pariking_lot_management.domain;
+package com.rapidstack.pariking_lot_management.domain.model;
+
+import com.rapidstack.pariking_lot_management.domain.enums.TicketStatus;
 
 import java.time.Instant;
 import java.util.Objects;

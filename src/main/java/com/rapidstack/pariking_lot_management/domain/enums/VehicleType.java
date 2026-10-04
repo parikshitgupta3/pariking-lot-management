@@ -1,4 +1,4 @@
-package com.rapidstack.pariking_lot_management.domain;
+package com.rapidstack.pariking_lot_management.domain.enums;
 
 /**
  * The kinds of vehicles the parking lot can accommodate.

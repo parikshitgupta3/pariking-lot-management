@@ -1,7 +1,14 @@
-package com.rapidstack.pariking_lot_management.domain;
+package com.rapidstack.pariking_lot_management.domain.model;
+
+import com.rapidstack.pariking_lot_management.domain.enums.GateType;
 
 import java.util.Objects;
 
+/**
+ * An entry or exit gate of the parking lot.
+ *
+ * <p>Immutable: a gate's identity, number, and direction never change.
+ */
 public final class ParkingGate {
 
     private final String id;
@@ -30,6 +37,9 @@ public final class ParkingGate {
         return gateType;
     }
 
+    /**
+     * Identity is the id; two gates with the same id are the same gate.
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) {
