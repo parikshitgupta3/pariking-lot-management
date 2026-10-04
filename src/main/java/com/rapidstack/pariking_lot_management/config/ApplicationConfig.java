@@ -13,8 +13,9 @@ import java.time.Clock;
 /**
  * Wires the application-layer collaborators. The domain strategies stay
  * framework-free; they are exposed as beans here instead, so the domain
- * package carries no Spring imports. The ticket repository bean follows once
- * the persistence adapter exists.
+ * package carries no Spring imports. The ticket repository port is satisfied
+ * by the {@code ParkingTicketRepositoryAdapter} in the infrastructure layer
+ * (picked up by component scan via its {@code @Repository} annotation).
  */
 @Configuration
 public class ApplicationConfig {
