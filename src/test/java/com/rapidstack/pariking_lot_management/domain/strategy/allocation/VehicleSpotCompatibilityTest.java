@@ -1,4 +1,4 @@
-package com.rapidstack.pariking_lot_management.domain.strategy;
+package com.rapidstack.pariking_lot_management.domain.strategy.allocation;
 
 import com.rapidstack.pariking_lot_management.domain.enums.SpotType;
 import com.rapidstack.pariking_lot_management.domain.enums.VehicleType;

@@ -1,4 +1,4 @@
-package com.rapidstack.pariking_lot_management.domain.strategy;
+package com.rapidstack.pariking_lot_management.domain.strategy.allocation;
 
 import com.rapidstack.pariking_lot_management.domain.enums.SpotStatus;
 import com.rapidstack.pariking_lot_management.domain.model.ParkingSpot;
