@@ -1,10 +1,19 @@
 spring:
   application:
     name: pariking_lot_management
+  datasource:
+    # Real deployments inject these as environment variables; the defaults
+    # match the local docker-compose.yml so `./gradlew bootRun` works after
+    # `docker compose up -d --wait`.
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/parkinglot}
+    username: ${SPRING_DATASOURCE_USERNAME:parking}
+    password: ${SPRING_DATASOURCE_PASSWORD:parking}
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: update
+      # The schema is owned by Flyway migrations (db/migration); Hibernate
+      # only checks that entities match it.
+      ddl-auto: validate
   jackson:
     mapper:
       accept-case-insensitive-enums: true

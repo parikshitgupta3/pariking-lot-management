@@ -22,9 +22,9 @@ import jakarta.persistence.UniqueConstraint;
  * requirement's primary data-integrity rule.
  */
 @Entity
-@Table(name = "parking_spots",
+@Table(name = "parking_spot",
         uniqueConstraints = @UniqueConstraint(
-                name = "uk_parking_spots_floor_spot_number",
+                name = "uk_parking_spot_floor_spot_number",
                 columnNames = {"floor_id", "spot_number"}))
 public class ParkingSpotEntity {
 
@@ -45,7 +45,7 @@ public class ParkingSpotEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "floor_id", nullable = false,
-            foreignKey = @ForeignKey(name = "fk_parking_spots_floor"))
+            foreignKey = @ForeignKey(name = "fk_parking_spot_floor"))
     private ParkingFloorEntity floor;
 
     protected ParkingSpotEntity() {

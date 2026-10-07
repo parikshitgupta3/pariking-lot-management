@@ -23,9 +23,9 @@ import java.util.List;
  * no-duplicate-floor-numbers invariant at the database level.
  */
 @Entity
-@Table(name = "parking_floors",
+@Table(name = "parking_floor",
         uniqueConstraints = @UniqueConstraint(
-                name = "uk_parking_floors_lot_floor_number",
+                name = "uk_parking_floor_lot_floor_number",
                 columnNames = {"lot_id", "floor_number"}))
 public class ParkingFloorEntity {
 
@@ -38,7 +38,7 @@ public class ParkingFloorEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "lot_id", nullable = false,
-            foreignKey = @ForeignKey(name = "fk_parking_floors_lot"))
+            foreignKey = @ForeignKey(name = "fk_parking_floor_lot"))
     private ParkingLotEntity lot;
 
     @OneToMany(mappedBy = "floor", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)

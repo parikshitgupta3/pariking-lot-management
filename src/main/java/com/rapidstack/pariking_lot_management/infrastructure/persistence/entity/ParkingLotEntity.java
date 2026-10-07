@@ -21,7 +21,7 @@ import java.util.List;
  * (open-in-view is disabled).
  */
 @Entity
-@Table(name = "parking_lots")
+@Table(name = "parking_lot")
 public class ParkingLotEntity {
 
     @Id

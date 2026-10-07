@@ -8,8 +8,9 @@ import org.testcontainers.containers.PostgreSQLContainer;
  * Base class for tests that need the full Spring context against a real
  * PostgreSQL, provided by Testcontainers. The {@code @ServiceConnection}
  * container replaces the datasource configuration, so tests exercise the
- * same JPA/Hibernate stack production uses. The schema is created fresh and
- * dropped per context.
+ * same Flyway/Hibernate/JPA stack production uses: the schema is created by
+ * the Flyway migrations in {@code db/migration}, and Hibernate validates the
+ * entities against it ({@code ddl-auto=validate}).
  *
  * <p>The container is started in a static initializer rather than via the
  * Testcontainers JUnit extension on purpose: extension-managed static
@@ -18,7 +19,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
  * a dead container's port. A JVM-lifetime container keeps every cached
  * context valid. Ryuk reclaims it after the build.
  */
-@SpringBootTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
+@SpringBootTest
 public abstract class AbstractPostgresIntegrationTest {
 
     @ServiceConnection

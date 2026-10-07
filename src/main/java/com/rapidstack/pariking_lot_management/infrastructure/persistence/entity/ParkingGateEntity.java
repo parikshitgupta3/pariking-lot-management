@@ -23,9 +23,9 @@ import jakarta.persistence.UniqueConstraint;
  * domain grows one.
  */
 @Entity
-@Table(name = "parking_gates",
+@Table(name = "parking_gate",
         uniqueConstraints = @UniqueConstraint(
-                name = "uk_parking_gates_lot_gate_number",
+                name = "uk_parking_gate_lot_gate_number",
                 columnNames = {"lot_id", "gate_number"}))
 public class ParkingGateEntity {
 
@@ -42,7 +42,7 @@ public class ParkingGateEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "lot_id", nullable = false,
-            foreignKey = @ForeignKey(name = "fk_parking_gates_lot"))
+            foreignKey = @ForeignKey(name = "fk_parking_gate_lot"))
     private ParkingLotEntity lot;
 
     protected ParkingGateEntity() {

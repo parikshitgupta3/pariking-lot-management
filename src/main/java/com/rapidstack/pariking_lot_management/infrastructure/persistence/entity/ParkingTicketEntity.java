@@ -24,7 +24,7 @@ import java.time.Instant;
  * is disabled).
  */
 @Entity
-@Table(name = "parking_tickets")
+@Table(name = "parking_ticket")
 public class ParkingTicketEntity {
 
     @Id
@@ -33,12 +33,12 @@ public class ParkingTicketEntity {
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "vehicle_registration_number", nullable = false,
-            foreignKey = @ForeignKey(name = "fk_parking_tickets_vehicle"))
+            foreignKey = @ForeignKey(name = "fk_parking_ticket_vehicle"))
     private VehicleEntity vehicle;
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "spot_id", nullable = false,
-            foreignKey = @ForeignKey(name = "fk_parking_tickets_spot"))
+            foreignKey = @ForeignKey(name = "fk_parking_ticket_spot"))
     private ParkingSpotEntity spot;
 
     @Column(name = "entry_time", nullable = false)

@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: parking-lot-postgres
+    environment:
+      POSTGRES_DB: parkinglot
+      POSTGRES_USER: parking
+      POSTGRES_PASSWORD: parking
+    ports:
+      # Host port 5433: 5432 is commonly taken by other local projects —
+      # change both this mapping and SPRING_DATASOURCE_URL if you prefer.
+      - "5433:5432"
+    volumes:
+      - parking-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U parking -d parkinglot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  parking-postgres-data:

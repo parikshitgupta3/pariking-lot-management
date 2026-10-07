@@ -15,7 +15,7 @@ import jakarta.persistence.Table;
  * identity maps directly, so no surrogate id is needed.
  */
 @Entity
-@Table(name = "vehicles")
+@Table(name = "vehicle")
 public class VehicleEntity {
 
     @Id
