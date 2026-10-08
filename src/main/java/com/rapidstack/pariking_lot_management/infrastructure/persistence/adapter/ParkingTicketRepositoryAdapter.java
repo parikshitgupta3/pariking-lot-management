@@ -72,4 +72,11 @@ public class ParkingTicketRepositoryAdapter implements ParkingTicketRepository {
                 .map(ParkingTicketMapper::toDomain)
                 .toList();
     }
+
+    @Override
+    public List<ParkingTicket> findAllActive() {
+        return tickets.findAllActive().stream()
+                .map(ParkingTicketMapper::toDomain)
+                .toList();
+    }
 }

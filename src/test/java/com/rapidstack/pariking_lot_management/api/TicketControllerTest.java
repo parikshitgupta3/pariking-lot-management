@@ -2,6 +2,8 @@ package com.rapidstack.pariking_lot_management.api;
 
 import com.rapidstack.pariking_lot_management.application.exception.TicketNotFoundException;
 import com.rapidstack.pariking_lot_management.application.usecase.exit.ParkingExitService;
+import com.rapidstack.pariking_lot_management.application.usecase.ticket.ActiveTicketView;
+import com.rapidstack.pariking_lot_management.application.usecase.ticket.TicketQueryService;
 import com.rapidstack.pariking_lot_management.domain.enums.SpotStatus;
 import com.rapidstack.pariking_lot_management.domain.enums.SpotType;
 import com.rapidstack.pariking_lot_management.domain.enums.TicketStatus;
@@ -18,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -36,6 +39,9 @@ class TicketControllerTest {
 
     @MockitoBean
     private ParkingExitService parkingExitService;
+
+    @MockitoBean
+    private TicketQueryService ticketQueryService;
 
     private ParkingTicket activeTicket() {
         ParkingSpot spot = new ParkingSpot("s1", "A-1", SpotType.COMPACT, SpotStatus.OCCUPIED);
@@ -81,6 +87,41 @@ class TicketControllerTest {
         mockMvc.perform(post("/api/v1/tickets/missing/exit"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void activeTicketsReturnsEnrichedRowsOldestFirst() throws Exception {
+        when(ticketQueryService.getActiveTickets()).thenReturn(List.of(
+                new ActiveTicketView("t1", "AB12CD3456", VehicleType.CAR,
+                        "A-1", SpotType.COMPACT, 2, "lot-1", "Rapid Lot",
+                        Instant.parse("2026-10-04T10:00:00Z")),
+                new ActiveTicketView("t2", "PQ12RS3456", VehicleType.TRUCK,
+                        "B-3", SpotType.LARGE, 1, "lot-2", "Harbour Lot",
+                        Instant.parse("2026-10-04T09:00:00Z"))));
+
+        mockMvc.perform(get("/api/v1/tickets/active"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].id").value("t1"))
+                .andExpect(jsonPath("$[0].vehicleRegistrationNumber").value("AB12CD3456"))
+                .andExpect(jsonPath("$[0].vehicleType").value("CAR"))
+                .andExpect(jsonPath("$[0].spotNumber").value("A-1"))
+                .andExpect(jsonPath("$[0].spotType").value("COMPACT"))
+                .andExpect(jsonPath("$[0].floorNumber").value(2))
+                .andExpect(jsonPath("$[0].lotId").value("lot-1"))
+                .andExpect(jsonPath("$[0].lotName").value("Rapid Lot"))
+                .andExpect(jsonPath("$[0].entryTime").value("2026-10-04T10:00:00Z"))
+                .andExpect(jsonPath("$[1].id").value("t2"))
+                .andExpect(jsonPath("$[1].lotName").value("Harbour Lot"));
+    }
+
+    @Test
+    void activeTicketsReturnsEmptyListWhenNoneAreActive() throws Exception {
+        when(ticketQueryService.getActiveTickets()).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/tickets/active"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test

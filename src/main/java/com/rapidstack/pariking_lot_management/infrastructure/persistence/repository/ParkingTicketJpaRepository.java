@@ -34,4 +34,12 @@ public interface ParkingTicketJpaRepository extends JpaRepository<ParkingTicketE
             + "where t.status = com.rapidstack.pariking_lot_management.domain.enums.TicketStatus.ACTIVE "
             + "and t.spot.floor.lot.id = :lotId")
     List<ParkingTicketEntity> findActiveByLotId(@Param("lotId") String lotId);
+
+    /**
+     * Every ACTIVE ticket across all lots.
+     */
+    @Query("select t from ParkingTicketEntity t "
+            + "where t.status = com.rapidstack.pariking_lot_management.domain.enums.TicketStatus.ACTIVE "
+            + "order by t.entryTime asc")
+    List<ParkingTicketEntity> findAllActive();
 }

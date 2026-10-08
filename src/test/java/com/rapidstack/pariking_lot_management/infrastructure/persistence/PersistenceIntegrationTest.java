@@ -195,5 +195,9 @@ class PersistenceIntegrationTest extends AbstractPostgresIntegrationTest {
         assertEquals(1, activeTickets.size());
         assertEquals(active.getId(), activeTickets.get(0).getId());
         assertEquals(spotA.getId(), activeTickets.get(0).getSpot().getId());
+
+        List<ParkingTicket> allActive = ticketPort.findAllActive();
+        assertEquals(1, allActive.size());
+        assertEquals(active.getId(), allActive.get(0).getId());
     }
 }

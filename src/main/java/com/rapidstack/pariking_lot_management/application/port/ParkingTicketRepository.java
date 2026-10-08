@@ -44,4 +44,9 @@ public interface ParkingTicketRepository {
      * @return every ACTIVE ticket whose spot belongs to the given lot
      */
     List<ParkingTicket> findActiveByLotId(String lotId);
+
+    /**
+     * @return every ACTIVE ticket across all lots
+     */
+    List<ParkingTicket> findAllActive();
 }
