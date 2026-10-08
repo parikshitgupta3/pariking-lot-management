@@ -60,7 +60,7 @@ class ParkingExitServiceTest {
     @Test
     void checkoutCompletesTicketReleasesSpotAndRecordsFee() {
         ParkingTicket ticket = activeTicketOnOccupiedSpot();
-        when(ticketRepository.findById("t1")).thenReturn(Optional.of(ticket));
+        when(ticketRepository.findByIdForUpdate("t1")).thenReturn(Optional.of(ticket));
         when(feeStrategy.calculateFee(same(VehicleType.CAR), eq(Duration.ofMinutes(90))))
                 .thenReturn(EXPECTED_FEE);
 
@@ -75,7 +75,7 @@ class ParkingExitServiceTest {
 
     @Test
     void checkoutRejectsUnknownTicketId() {
-        when(ticketRepository.findById("missing")).thenReturn(Optional.empty());
+        when(ticketRepository.findByIdForUpdate("missing")).thenReturn(Optional.empty());
 
         TicketNotFoundException exception = assertThrows(TicketNotFoundException.class,
                 () -> service.checkout("missing"));
@@ -88,7 +88,7 @@ class ParkingExitServiceTest {
     @Test
     void checkoutRejectsAlreadyCompletedTicket() {
         ParkingTicket completedTicket = completedTicket();
-        when(ticketRepository.findById("t1")).thenReturn(Optional.of(completedTicket));
+        when(ticketRepository.findByIdForUpdate("t1")).thenReturn(Optional.of(completedTicket));
 
         TicketAlreadyCompletedException exception = assertThrows(TicketAlreadyCompletedException.class,
                 () -> service.checkout("t1"));
@@ -109,7 +109,7 @@ class ParkingExitServiceTest {
     void checkoutPropagatesSpotReleaseGuardWhenSpotIsNotOccupied() {
         ParkingSpot driftedSpot = new ParkingSpot("s1", "A-1", SpotType.COMPACT, SpotStatus.AVAILABLE);
         ParkingTicket ticket = new ParkingTicket("t1", car, driftedSpot, ENTRY_INSTANT);
-        when(ticketRepository.findById("t1")).thenReturn(Optional.of(ticket));
+        when(ticketRepository.findByIdForUpdate("t1")).thenReturn(Optional.of(ticket));
         when(feeStrategy.calculateFee(same(VehicleType.CAR), any())).thenReturn(EXPECTED_FEE);
 
         assertThrows(IllegalStateException.class, () -> service.checkout("t1"));

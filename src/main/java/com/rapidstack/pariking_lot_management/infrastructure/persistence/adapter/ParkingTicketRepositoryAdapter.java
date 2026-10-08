@@ -47,6 +47,13 @@ public class ParkingTicketRepositoryAdapter implements ParkingTicketRepository {
 
     @Override
     @Transactional
+    public Optional<ParkingTicket> findByIdForUpdate(String ticketId) {
+        return tickets.findByIdForUpdate(ticketId)
+                .map(ParkingTicketMapper::toDomain);
+    }
+
+    @Override
+    @Transactional
     public void save(ParkingTicket ticket) {
         VehicleEntity vehicle = vehicles.save(VehicleMapper.toEntity(ticket.getVehicle()));
         ParkingSpotEntity spot = spots.findById(ticket.getSpot().getId())

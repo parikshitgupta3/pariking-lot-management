@@ -1,5 +1,6 @@
 package com.rapidstack.pariking_lot_management.application.usecase.entry;
 
+import com.rapidstack.pariking_lot_management.application.port.ParkingSpotRepository;
 import com.rapidstack.pariking_lot_management.application.port.ParkingTicketRepository;
 import com.rapidstack.pariking_lot_management.domain.enums.SpotStatus;
 import com.rapidstack.pariking_lot_management.domain.enums.SpotType;
@@ -38,6 +39,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,6 +49,9 @@ class ParkingEntryServiceTest {
 
     @Mock
     private SpotAllocationStrategy allocationStrategy;
+
+    @Mock
+    private ParkingSpotRepository spotRepository;
 
     @Mock
     private ParkingTicketRepository ticketRepository;
@@ -60,8 +65,8 @@ class ParkingEntryServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ParkingEntryService(allocationStrategy, Clock.fixed(ENTRY_INSTANT, ZoneOffset.UTC),
-                ticketRepository);
+        service = new ParkingEntryService(allocationStrategy, spotRepository, ticketRepository,
+                Clock.fixed(ENTRY_INSTANT, ZoneOffset.UTC));
     }
 
     @Test
@@ -69,6 +74,7 @@ class ParkingEntryServiceTest {
         ParkingSpot spot = new ParkingSpot("s1", "A-1", SpotType.COMPACT);
         ParkingLot lot = singleFloorLot(spot);
         when(allocationStrategy.allocate(anyList(), same(car))).thenReturn(Optional.of(spot));
+        when(spotRepository.findByIdForUpdate("s1")).thenReturn(Optional.of(spot));
 
         ParkingTicket ticket = service.admit(car, lot);
 
@@ -97,6 +103,7 @@ class ParkingEntryServiceTest {
 
         verify(allocationStrategy).allocate(candidatesCaptor.capture(), same(car));
         assertEquals(List.of(groundA, groundB, firstFloorSpot), candidatesCaptor.getValue());
+        verifyNoInteractions(spotRepository);
         verify(ticketRepository, never()).save(any(ParkingTicket.class));
     }
 
@@ -112,16 +119,64 @@ class ParkingEntryServiceTest {
         assertTrue(exception.getMessage().contains("AB12CD3456"));
         assertTrue(exception.getMessage().contains("Rapid Lot"));
         assertEquals(SpotStatus.AVAILABLE, onlyBikeSpot.getStatus()); // nothing mutated on failure
+        verifyNoInteractions(spotRepository);
         verify(ticketRepository, never()).save(any(ParkingTicket.class));
     }
 
     @Test
-    void propagatesDomainGuardWhenStrategyReturnsAnUnavailableSpot() {
-        ParkingSpot occupiedSpot = new ParkingSpot("s1", "A-1", SpotType.COMPACT, SpotStatus.OCCUPIED);
-        ParkingLot lot = singleFloorLot(occupiedSpot);
-        when(allocationStrategy.allocate(anyList(), same(car))).thenReturn(Optional.of(occupiedSpot));
+    void skipsSpotTakenConcurrentlyAndAllocatesTheNextCandidate() {
+        ParkingSpot firstChoice = new ParkingSpot("s1", "A-1", SpotType.COMPACT); // looks free in the snapshot
+        ParkingSpot secondChoice = new ParkingSpot("s2", "A-2", SpotType.LARGE);
+        ParkingLot lot = singleFloorLot(firstChoice, secondChoice);
+        when(allocationStrategy.allocate(anyList(), same(car)))
+                .thenReturn(Optional.of(firstChoice))
+                .thenReturn(Optional.of(secondChoice));
+        // The locked row for s1 reveals it was occupied by a concurrent entry.
+        when(spotRepository.findByIdForUpdate("s1"))
+                .thenReturn(Optional.of(new ParkingSpot("s1", "A-1", SpotType.COMPACT, SpotStatus.OCCUPIED)));
+        when(spotRepository.findByIdForUpdate("s2")).thenReturn(Optional.of(secondChoice));
 
-        assertThrows(IllegalStateException.class, () -> service.admit(car, lot));
+        ParkingTicket ticket = service.admit(car, lot);
+
+        assertEquals("s2", ticket.getSpot().getId());
+        assertEquals(SpotStatus.OCCUPIED, secondChoice.getStatus());
+        assertEquals(SpotStatus.AVAILABLE, firstChoice.getStatus()); // snapshot copy never mutated
+        verify(ticketRepository).save(same(ticket));
+
+        verify(allocationStrategy, org.mockito.Mockito.times(2)).allocate(candidatesCaptor.capture(), same(car));
+        List<List<ParkingSpot>> invocations = candidatesCaptor.getAllValues();
+        assertEquals(List.of(firstChoice, secondChoice), invocations.get(0));
+        assertEquals(List.of(secondChoice), invocations.get(1)); // first choice excluded on retry
+    }
+
+    @Test
+    void skipsSpotThatVanishedFromTheDatabase() {
+        ParkingSpot ghost = new ParkingSpot("s1", "A-1", SpotType.COMPACT);
+        ParkingSpot survivor = new ParkingSpot("s2", "A-2", SpotType.LARGE);
+        ParkingLot lot = singleFloorLot(ghost, survivor);
+        when(allocationStrategy.allocate(anyList(), same(car)))
+                .thenReturn(Optional.of(ghost))
+                .thenReturn(Optional.of(survivor));
+        when(spotRepository.findByIdForUpdate("s1")).thenReturn(Optional.empty());
+        when(spotRepository.findByIdForUpdate("s2")).thenReturn(Optional.of(survivor));
+
+        ParkingTicket ticket = service.admit(car, lot);
+
+        assertEquals("s2", ticket.getSpot().getId());
+        verify(ticketRepository).save(same(ticket));
+    }
+
+    @Test
+    void surfacesNoAvailableSpotWhenTheOnlyCandidateWasTakenConcurrently() {
+        ParkingSpot taken = new ParkingSpot("s1", "A-1", SpotType.COMPACT); // looks free in the snapshot
+        ParkingLot lot = singleFloorLot(taken);
+        when(allocationStrategy.allocate(anyList(), same(car))).thenReturn(Optional.of(taken));
+        when(spotRepository.findByIdForUpdate("s1"))
+                .thenReturn(Optional.of(new ParkingSpot("s1", "A-1", SpotType.COMPACT, SpotStatus.OCCUPIED)));
+
+        assertThrows(NoAvailableSpotException.class, () -> service.admit(car, lot));
+
+        assertEquals(SpotStatus.AVAILABLE, taken.getStatus());
         verify(ticketRepository, never()).save(any(ParkingTicket.class));
     }
 
@@ -131,7 +186,10 @@ class ParkingEntryServiceTest {
         ParkingSpot secondSpot = new ParkingSpot("s2", "A-2", SpotType.LARGE);
         ParkingLot lot = singleFloorLot(firstSpot, secondSpot);
         when(allocationStrategy.allocate(anyList(), same(car)))
-                .thenReturn(Optional.of(firstSpot), Optional.of(secondSpot));
+                .thenReturn(Optional.of(firstSpot))
+                .thenReturn(Optional.of(secondSpot));
+        when(spotRepository.findByIdForUpdate("s1")).thenReturn(Optional.of(firstSpot));
+        when(spotRepository.findByIdForUpdate("s2")).thenReturn(Optional.of(secondSpot));
 
         ParkingTicket firstTicket = service.admit(car, lot);
         ParkingTicket secondTicket = service.admit(car, lot);
@@ -153,9 +211,14 @@ class ParkingEntryServiceTest {
     void rejectsNullConstructorDependencies() {
         Clock clock = Clock.fixed(ENTRY_INSTANT, ZoneOffset.UTC);
 
-        assertThrows(NullPointerException.class, () -> new ParkingEntryService(null, clock, ticketRepository));
-        assertThrows(NullPointerException.class, () -> new ParkingEntryService(allocationStrategy, null, ticketRepository));
-        assertThrows(NullPointerException.class, () -> new ParkingEntryService(allocationStrategy, clock, null));
+        assertThrows(NullPointerException.class,
+                () -> new ParkingEntryService(null, spotRepository, ticketRepository, clock));
+        assertThrows(NullPointerException.class,
+                () -> new ParkingEntryService(allocationStrategy, null, ticketRepository, clock));
+        assertThrows(NullPointerException.class,
+                () -> new ParkingEntryService(allocationStrategy, spotRepository, null, clock));
+        assertThrows(NullPointerException.class,
+                () -> new ParkingEntryService(allocationStrategy, spotRepository, ticketRepository, null));
     }
 
     private ParkingLot singleFloorLot(ParkingSpot... spots) {
