@@ -167,4 +167,33 @@ class PersistenceIntegrationTest extends AbstractPostgresIntegrationTest {
 
         assertThrows(SpotNotPersistedException.class, () -> ticketPort.save(ticket));
     }
+
+    @Test
+    void ticketPortFindsActiveTicketsByLot() {
+        ParkingSpot spotA = new ParkingSpot(id(), "A-1", SpotType.COMPACT);
+        ParkingSpot spotB = new ParkingSpot(id(), "A-2", SpotType.BIKE);
+        ParkingLot lot = new ParkingLot(id(), "Active Ticket Lot", List.of(
+                new ParkingFloor(id(), 1, List.of(spotA, spotB))));
+        lots.save(ParkingLotMapper.toEntity(lot));
+
+        spotA.markOccupied();
+        ParkingTicket active = new ParkingTicket(id(),
+                new Vehicle("KA01AA" + id().substring(0, 4).toUpperCase(), VehicleType.CAR),
+                spotA, Instant.parse("2026-10-04T10:00:00Z"));
+        ticketPort.save(active);
+
+        spotB.markOccupied();
+        ParkingTicket completed = new ParkingTicket(id(),
+                new Vehicle("KA01BB" + id().substring(0, 4).toUpperCase(), VehicleType.TRUCK),
+                spotB, Instant.parse("2026-10-04T08:00:00Z"));
+        ticketPort.save(completed);
+        completed.close(Instant.parse("2026-10-04T09:00:00Z"), new BigDecimal("20.00"));
+        completed.getSpot().release();
+        ticketPort.save(completed);
+
+        List<ParkingTicket> activeTickets = ticketPort.findActiveByLotId(lot.getId());
+        assertEquals(1, activeTickets.size());
+        assertEquals(active.getId(), activeTickets.get(0).getId());
+        assertEquals(spotA.getId(), activeTickets.get(0).getSpot().getId());
+    }
 }

@@ -58,9 +58,10 @@ public class ParkingLotController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get a parking lot's details, including every spot's status")
+    @Operation(summary = "Get a parking lot's details, including every spot's status and active ticket")
     public ParkingLotDetailsResponse get(@PathVariable String id) {
-        return ParkingLotDetailsResponse.from(parkingLotService.getById(id));
+        ParkingLotService.LotDetail detail = parkingLotService.getDetail(id);
+        return ParkingLotDetailsResponse.from(detail.lot(), detail.activeTicketsBySpotId());
     }
 
     @PostMapping("/{id}/vehicles/entry")

@@ -12,6 +12,7 @@ import com.rapidstack.pariking_lot_management.infrastructure.persistence.reposit
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -63,5 +64,12 @@ public class ParkingTicketRepositoryAdapter implements ParkingTicketRepository {
         spot.setStatus(ticket.getSpot().getStatus());
         spots.save(spot);
         tickets.save(ParkingTicketMapper.toEntity(ticket, vehicle, spot));
+    }
+
+    @Override
+    public List<ParkingTicket> findActiveByLotId(String lotId) {
+        return tickets.findActiveByLotId(lotId).stream()
+                .map(ParkingTicketMapper::toDomain)
+                .toList();
     }
 }

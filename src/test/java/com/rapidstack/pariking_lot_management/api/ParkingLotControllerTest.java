@@ -4,6 +4,7 @@ import com.rapidstack.pariking_lot_management.application.exception.ParkingLotNo
 import com.rapidstack.pariking_lot_management.application.usecase.entry.ParkingEntryService;
 import com.rapidstack.pariking_lot_management.application.usecase.parkinglot.AvailableSpotView;
 import com.rapidstack.pariking_lot_management.application.usecase.parkinglot.ParkingLotService;
+import com.rapidstack.pariking_lot_management.domain.enums.SpotStatus;
 import com.rapidstack.pariking_lot_management.domain.enums.SpotType;
 import com.rapidstack.pariking_lot_management.domain.enums.TicketStatus;
 import com.rapidstack.pariking_lot_management.domain.enums.VehicleType;
@@ -22,8 +23,10 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.matchesPattern;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -134,18 +137,32 @@ class ParkingLotControllerTest {
 
     @Test
     void getReturnsFullDetails() throws Exception {
-        when(parkingLotService.getById("lot-1")).thenReturn(sampleLot());
+        ParkingLot lot = sampleLot();
+        ParkingSpot occupied = lot.getFloors().get(0).getSpots().get(0);
+        occupied.markOccupied();
+        ParkingTicket ticket = new ParkingTicket("t-active",
+                new Vehicle("AB12CD3456", VehicleType.CAR), occupied,
+                Instant.parse("2026-10-04T10:15:30Z"));
+        when(parkingLotService.getDetail("lot-1"))
+                .thenReturn(new ParkingLotService.LotDetail(lot, Map.of(occupied.getId(), ticket)));
 
         mockMvc.perform(get("/api/v1/parking-lots/lot-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("lot-1"))
+                .andExpect(jsonPath("$.floors[0].spots[0].spotNumber").value("A-1"))
+                .andExpect(jsonPath("$.floors[0].spots[0].status").value("OCCUPIED"))
+                .andExpect(jsonPath("$.floors[0].spots[0].ticket.id").value("t-active"))
+                .andExpect(jsonPath("$.floors[0].spots[0].ticket.vehicleRegistrationNumber").value("AB12CD3456"))
+                .andExpect(jsonPath("$.floors[0].spots[0].ticket.vehicleType").value("CAR"))
+                .andExpect(jsonPath("$.floors[0].spots[0].ticket.entryTime").value("2026-10-04T10:15:30Z"))
                 .andExpect(jsonPath("$.floors[0].spots[1].spotNumber").value("A-2"))
-                .andExpect(jsonPath("$.floors[0].spots[1].status").value("AVAILABLE"));
+                .andExpect(jsonPath("$.floors[0].spots[1].status").value("AVAILABLE"))
+                .andExpect(jsonPath("$.floors[0].spots[1].ticket").value(nullValue()));
     }
 
     @Test
     void getReturns404ForUnknownLot() throws Exception {
-        when(parkingLotService.getById("missing"))
+        when(parkingLotService.getDetail("missing"))
                 .thenThrow(new ParkingLotNotFoundException("No parking lot found for id 'missing'"));
 
         mockMvc.perform(get("/api/v1/parking-lots/missing"))

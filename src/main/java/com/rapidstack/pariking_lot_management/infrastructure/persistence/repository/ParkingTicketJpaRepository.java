@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -24,4 +25,13 @@ public interface ParkingTicketJpaRepository extends JpaRepository<ParkingTicketE
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select t from ParkingTicketEntity t where t.id = :id")
     Optional<ParkingTicketEntity> findByIdForUpdate(@Param("id") String id);
+
+    /**
+     * Every ACTIVE ticket whose spot belongs to the given lot, via the
+     * ticket → spot → floor → lot association.
+     */
+    @Query("select t from ParkingTicketEntity t "
+            + "where t.status = com.rapidstack.pariking_lot_management.domain.enums.TicketStatus.ACTIVE "
+            + "and t.spot.floor.lot.id = :lotId")
+    List<ParkingTicketEntity> findActiveByLotId(@Param("lotId") String lotId);
 }

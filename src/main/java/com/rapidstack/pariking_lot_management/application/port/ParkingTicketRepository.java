@@ -2,6 +2,7 @@ package com.rapidstack.pariking_lot_management.application.port;
 
 import com.rapidstack.pariking_lot_management.domain.model.ParkingTicket;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -38,4 +39,9 @@ public interface ParkingTicketRepository {
      * Persists the current state of the given ticket.
      */
     void save(ParkingTicket ticket);
+
+    /**
+     * @return every ACTIVE ticket whose spot belongs to the given lot
+     */
+    List<ParkingTicket> findActiveByLotId(String lotId);
 }
